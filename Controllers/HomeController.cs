@@ -21,7 +21,7 @@ public class HomeController : Controller
     {
         _logger = logger;
         _context = context;
-        _apiKey = "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";
+        _apiKey = "1";
     }
 
     private static Random random = new Random();
