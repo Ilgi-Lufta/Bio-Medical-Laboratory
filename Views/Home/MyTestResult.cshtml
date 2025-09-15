@@ -1,4 +1,4 @@
-
+@* 
 
 
 <div class="mt-5 container">
@@ -37,4 +37,216 @@
     
     </div>
     </div>
+    </div> *@
+
+<div class="mt-5 container">
+    <div class="row mb-5">
+        <div class="col-sm-6">
+            <h1>Mireseerdhe @ViewBag.thispacient.Emripacientit</h1>
+        </div>
+        <div class="offset-sm-4 col-sm-2">
+            <a class="btn btn-danger" asp-action="LogOut" asp-controller="Home">Log Out</a>
+        </div>
     </div>
+
+    <div class="row">
+        <!-- Chat Window (Left Side, bigger now) -->
+        <div class="col-sm-5">
+            <div class="card shadow-lg" style="height: 600px; display: flex; flex-direction: column;">
+                <div class="card-header bg-primary text-white">
+                    <strong>AI Chat Assistant</strong>
+                </div>
+                <div id="chatWindow" class="card-body overflow-auto" style="flex: 1; max-height: 500px;">
+                    <!-- Messages will be added here dynamically -->
+                </div>
+                <div class="card-footer">
+                    <form id="chatForm" class="d-flex">
+                        <input type="text" id="chatInput" class="form-control me-2" placeholder="Type your message..." required />
+                        <button type="submit" class="btn btn-primary">Send</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient Results (Right Side, smaller now) -->
+        <div class="col-sm-7">
+            <form id="testSelectionForm">
+                <table class="table table-striped table-bordered">
+                    <thead>
+                        <tr>
+                            <th scope="col">Select</th>
+                            <th scope="col">Emri Analizes</th>
+                            <th scope="col">Data</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in ViewBag.thispacient.MYfleteanaliz)
+                        {
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="selectedTests" value="@item.FleteAnalizeId" />
+                                </td>
+                                <td>
+                                    <a asp-action="printo" asp-route-id2="@item.FleteAnalizeId">@item.Emri</a>
+                                </td>
+                                <td>@item.CreatedAt</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+                <button type="button" id="analyzeBtn" class="btn btn-success">Analyze Selected</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+  @*   <script>
+        Send chat message
+        document.getElementById("chatForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const input = document.getElementById("chatInput");
+            const message = input.value;
+            input.value = "";
+
+            const chatWindow = document.getElementById("chatWindow");
+            chatWindow.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
+
+            const response = await fetch('/Home/SendChatMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                    chatWindow.innerHTML += `<div class="mb-2"><strong>AI:</strong>
+                    <div class="p-2 bg-light rounded mt-1">
+                    ${marked.parse(data.reply)}
+                </div>
+            </div>`;
+
+
+
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+
+        Analyze selected test results
+        document.getElementById("analyzeBtn").addEventListener("click", async function () {
+            const selected = [...document.querySelectorAll('input[name="selectedTests"]:checked')]
+                .map(cb => cb.value);
+
+            if (selected.length === 0) {
+                alert("Please select at least one test result.");
+                return;
+            }
+
+            const chatWindow = document.getElementById("chatWindow");
+            chatWindow.innerHTML += `<div><strong>You:</strong> Analyze selected tests (${selected.join(", ")})</div>`;
+
+            const response = await fetch('/Home/AnalyzeTests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ testIds: selected })
+            });
+
+            if (response.ok) {
+         const data = await response.json();
+        chatWindow.innerHTML += `
+            <div class="mb-2">
+                <strong>AI:</strong>
+                <div class="p-2 bg-light rounded mt-1">
+                    ${marked.parse(data.reply)}
+                </div>
+            </div>
+        `;
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+           
+   
+
+    </script> *@
+    <script>
+        // Helper: show loader
+        function showLoader(chatWindow) {
+            const loaderId = "loader-" + Date.now();
+            chatWindow.innerHTML += `
+                <div id="${loaderId}" class="mb-2">
+                    <strong>AI:</strong>
+                    <div class="p-2 bg-light rounded mt-1">
+                        <span class="loader"></span> Thinking...
+                    </div>
+                </div>`;
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+            return loaderId;
+        }
+
+        // Helper: replace loader with AI response
+        function replaceLoaderWithReply(loaderId, reply) {
+            const loaderDiv = document.getElementById(loaderId);
+            if (loaderDiv) {
+                loaderDiv.innerHTML = `
+                    <strong>AI:</strong>
+                    <div class="p-2 bg-light rounded mt-1">
+                        ${marked.parse(reply)}
+                    </div>`;
+            }
+        }
+
+        // Send chat message
+        document.getElementById("chatForm").addEventListener("submit", async function (e) {
+            e.preventDefault();
+
+            const input = document.getElementById("chatInput");
+            const message = input.value;
+            input.value = "";
+
+            const chatWindow = document.getElementById("chatWindow");
+            chatWindow.innerHTML += `<div><strong>You:</strong> ${message}</div>`;
+            const loaderId = showLoader(chatWindow);
+
+            const response = await fetch('/Home/SendChatMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                replaceLoaderWithReply(loaderId, data.reply);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+
+        // Analyze selected test results
+        document.getElementById("analyzeBtn").addEventListener("click", async function () {
+            const selected = [...document.querySelectorAll('input[name="selectedTests"]:checked')]
+                .map(cb => cb.value);
+
+            if (selected.length === 0) {
+                alert("Please select at least one test result.");
+                return;
+            }
+
+            const chatWindow = document.getElementById("chatWindow");
+            chatWindow.innerHTML += `<div><strong>You:</strong> Analyze selected tests (${selected.join(", ")})</div>`;
+            const loaderId = showLoader(chatWindow);
+
+            const response = await fetch('/Home/AnalyzeTests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ testIds: selected })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                replaceLoaderWithReply(loaderId, data.reply);
+                chatWindow.scrollTop = chatWindow.scrollHeight;
+            }
+        });
+    </script>
+
+}

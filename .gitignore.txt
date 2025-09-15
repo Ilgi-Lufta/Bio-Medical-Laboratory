@@ -1,0 +1,46 @@
+﻿# Ignore Visual Studio temporary files, build results, and
+# user-specific files
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+bin/
+obj/
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# VS Code settings
+.vscode/
+
+# Visual Studio folder
+.vs/
+
+# Others
+*.log
+*.tlog
+*.cache
+*.pdb
+*.dbmdl
+*.dbmdl
+*.jfm
+
+# Node.js
+node_modules/
+
+# Others (optional)
+*.sqlite
+*.swp
+*.bak

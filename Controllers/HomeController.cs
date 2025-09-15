@@ -1,11 +1,14 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
+﻿using BioLab.Models;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Collections;
 using System.Collections.Generic;
-using BioLab.Models;
+using System.Diagnostics;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace BioLab.Controllers;
 
@@ -13,11 +16,12 @@ public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private MyContext _context;
-
+    private readonly string _apiKey;
     public HomeController(ILogger<HomeController> logger, MyContext context)
     {
         _logger = logger;
         _context = context;
+        _apiKey = "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";
     }
 
     private static Random random = new Random();
@@ -280,7 +284,7 @@ public class HomeController : Controller
         //marim nje liste me analiza te krijuar nga admini i loguar
         var Analiz = from m in _context.Analizat.Where(e => e.AdminId == admin)
                      select m;
-        ViewBag.Analiz = Analiz;
+        ViewBag.Analiz = Analiz.Take(4); 
         ///funksioni i kerkimit sipas emrit te analizes
         if (!String.IsNullOrEmpty(searchString))
         {
@@ -301,9 +305,24 @@ public class HomeController : Controller
 //te fletes se anlizes qe meret si model
             foreach (var item in ilgi.mtms)
             {
+                Analiza analiz = _context.Analizat.FirstOrDefault(a => a.AnalizaId == item.AnalizaId);
+                Analiza newanaliz = new Analiza()
+                {
+                    Emri = analiz.Emri,
+                    Njesia = analiz.Njesia,
+                    Norma = analiz.Norma,
+                    Cmimi = analiz.Cmimi,
+                    Rezultati = analiz.Rezultati,
+                    AdminId = admin
+
+                };
+
+                _context.Add(newanaliz);
+                _context.SaveChanges();
+
                 mtm mymtm = new mtm()
                 {
-                    AnalizaId = item.AnalizaId,
+                    AnalizaId = newanaliz.AnalizaId,
                     FleteAnalizeId = id2
                 };
                 _context.Add(mymtm);
@@ -668,6 +687,7 @@ public class HomeController : Controller
 
     public IActionResult SHtoneliste2(int id, int id2, int id3)
     {
+        int admin = (int)HttpContext.Session.GetInt32("AdminId");
         //nese ekzstion many to many midis analizes dhe fletes se analizes
         // mos te krijohet 2 here ne db kjo many to many
         List<mtm> allmtm = _context.mtms.ToList();
@@ -678,10 +698,24 @@ public class HomeController : Controller
         }
         else
         {
+            Analiza analiz = _context.Analizat.FirstOrDefault(a => a.AnalizaId == id);
+
+            Analiza newanaliz = new Analiza()
+            {
+                Emri = analiz.Emri,
+                Njesia = analiz.Njesia,
+                Norma = analiz.Norma,
+                Cmimi = analiz.Cmimi,
+                Rezultati = analiz.Rezultati,
+                AdminId = admin
+            };
+            _context.Add(newanaliz);
+            _context.SaveChanges();
+
             //nese many to many nuk ekziston krijom nje te re me parametrat e mar nhga funksioni
             mtm ilgi = new mtm()
             {
-                AnalizaId = id,
+                AnalizaId = newanaliz.AnalizaId,
                 FleteAnalizeId = id2
             };
             _context.Add(ilgi);
@@ -917,4 +951,215 @@ public class HomeController : Controller
     {
         return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
+
+    //[HttpPost]
+    //public IActionResult SendChatMessage([FromBody] ChatRequest request)
+    //{
+    //    // For now, just echo the message (later we connect to OpenAI)
+    //    var reply = $"You said: {request.Message}. (AI analysis will go here)";
+    //    return Json(new { reply });
+    //}
+
+   // public class ChatRequest
+   // {
+   //     public string Message { get; set; }
+   // }
+
+   // public class AnalyzeRequest
+   // {
+   //     public List<int> TestIds { get; set; }
+   // }
+
+   // // Chat endpoint
+   // [HttpPost]
+   // public async Task<IActionResult> SendChatMessage([FromBody] ChatRequest request)
+   // {
+   //     string apiKey = "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"; // move this to config
+   //     using var client = new HttpClient();
+   //     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+   //     var messages = new[]
+   //     {
+   //              new { role = "system", content = "You are a medical AI assistant. Analyze lab test results and return the response in clear sections using Markdown (headings, bullet points, short paragraphs). Avoid raw JSON in the response." },
+
+   //     new { role = "user", content = request.Message }
+   // };
+
+   //     var payload = new
+   //     {
+   //         model = "gpt-4o-mini", // cheaper and good for summaries
+   //         messages = messages
+   //     };
+
+   //     var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+   //     var response = await client.PostAsync("https://api.openai.com/v1/chat/completions", content);
+
+   //     var json = await response.Content.ReadAsStringAsync();
+   //     using var doc = JsonDocument.Parse(json);
+   //     var reply = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+
+   //     return Json(new { reply });
+   // }
+
+   // //Analyze selected tests
+   //[HttpPost]
+   // public async Task<IActionResult> AnalyzeTests([FromBody] AnalyzeRequest request)
+   // {
+   //     // Pull selected tests from DB
+   //     var selected = _context.FleteAnalizes
+   //         .Where(f => request.TestIds.Contains(f.FleteAnalizeId))
+   //         .Select(f => new { f.Emri, f.CreatedAt, Values = f.mtms.Select(m => new { m.Myanaliz.Emri, m.Myanaliz.Rezultati,m.Myanaliz.Njesia, m.Myanaliz.Norma }) })
+   //         .ToList();
+
+   //     string inputData = JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true });
+
+   //     string apiKey = "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"; // move this to config
+   //     using var client = new HttpClient();
+   //     client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+   //     var messages = new[]
+   //     {
+   //         new { role = "system", content = "You are a medical AI assistant. Analyze lab test results and return the response in clear sections using Markdown (headings, bullet points, short paragraphs). Avoid raw JSON in the response." },
+
+   //     new { role = "user", content = $"Here are the selected test results:\n{inputData}" }
+   // };
+
+   //     var payload = new
+   //     {
+   //         model = "gpt-4o-mini",
+   //         messages = messages
+   //     };
+
+   //     var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+   //     var response = await client.PostAsync("https://api.openai.com/v1/chat/completions", content);
+
+   //     var json = await response.Content.ReadAsStringAsync();
+   //     using var doc = JsonDocument.Parse(json);
+   //     var reply = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+
+   //     return Json(new { reply });
+   // }
+
+
+
+
+
+
+
+    public class ChatRequest
+    {
+        public string Message { get; set; }
+    }
+
+    public class AnalyzeRequest
+    {
+        public List<int> TestIds { get; set; }
+    }
+
+    // Helper: get chat history from session
+    private List<object> GetChatHistory()
+    {
+        var session = HttpContext.Session;
+        var json = session.GetString("ChatHistory");
+        if (string.IsNullOrEmpty(json))
+        {
+            var initial = new List<object>
+            {
+                new { role = "system", content = "You are a medical AI assistant. Analyze lab test results and return the response in clear sections using Markdown (headings, bullet points, short paragraphs).If more than one test is added that has the same name but different dates compare the results. Respond in **Albanian**. Avoid raw JSON in the response." }
+            };
+            session.SetString("ChatHistory", JsonSerializer.Serialize(initial));
+            return initial;
+        }
+
+        return JsonSerializer.Deserialize<List<object>>(json);
+    }
+
+    // Helper: save chat history
+    private void SaveChatHistory(List<object> history)
+    {
+        var session = HttpContext.Session;
+        session.SetString("ChatHistory", JsonSerializer.Serialize(history));
+    }
+
+    // Common method to call OpenAI
+    private async Task<string> CallOpenAiAsync(List<object> messages)
+    {
+        string apiKey = _apiKey; // move to config
+        using var client = new HttpClient();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", apiKey);
+
+        var payload = new
+        {
+            model = "gpt-4o-mini",
+            messages = messages
+        };
+
+        var content = new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
+        var response = await client.PostAsync("https://api.openai.com/v1/chat/completions", content);
+
+        var json = await response.Content.ReadAsStringAsync();
+        using var doc = JsonDocument.Parse(json);
+        var reply = doc.RootElement.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+
+        return reply;
+    }
+
+    // Chat endpoint
+    [HttpPost]
+    public async Task<IActionResult> SendChatMessage([FromBody] ChatRequest request)
+    {
+        var history = GetChatHistory();
+
+        // Add user message
+        history.Add(new { role = "user", content = request.Message });
+
+        // Call OpenAI
+        var reply = await CallOpenAiAsync(history);
+
+        // Add assistant reply to history
+        history.Add(new { role = "assistant", content = reply });
+        SaveChatHistory(history);
+
+        return Json(new { reply });
+    }
+
+    // Analyze selected tests
+    [HttpPost]
+    public async Task<IActionResult> AnalyzeTests([FromBody] AnalyzeRequest request)
+    {
+        // Pull selected tests from DB
+        var selected = _context.FleteAnalizes
+            .Where(f => request.TestIds.Contains(f.FleteAnalizeId))
+            .Select(f => new
+            {
+                f.Emri,
+                f.CreatedAt,
+                Values = f.mtms.Select(m => new
+                {
+                    m.Myanaliz.Emri,
+                    m.Myanaliz.Rezultati,
+                    m.Myanaliz.Njesia,
+                    m.Myanaliz.Norma
+                })
+            })
+            .ToList();
+
+        string inputData = JsonSerializer.Serialize(selected, new JsonSerializerOptions { WriteIndented = true });
+
+        var history = GetChatHistory();
+
+        // Add user request with test data
+        history.Add(new { role = "user", content = $"Here are the selected test results (reply in Albanian with the same formatting) :\n{inputData}" });
+
+        // Call OpenAI
+        var reply = await CallOpenAiAsync(history);
+
+        // Add assistant reply to history
+        history.Add(new { role = "assistant", content = reply });
+        SaveChatHistory(history);
+
+        return Json(new { reply });
+    }
 }
+
+
