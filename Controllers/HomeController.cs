@@ -22,6 +22,7 @@ public class HomeController : Controller
         _logger = logger;
         _context = context;
         _apiKey = "1";
+
     }
 
     private static Random random = new Random();
